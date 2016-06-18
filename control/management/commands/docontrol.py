@@ -40,9 +40,6 @@ class Command(BaseCommand):
             logPrint("--ABORT-- Override is ON!")
             return
 
-        # TODO: We need a way to check how long AC has been cooling, heating, etc.
-        # SQL table with rows describing control events, such as cooling started, stopped, etc
-
         # Read recent control events from the past few hours to see what's happening
         threshold = timezone.now() - timedelta(hours=3)
         results = ControlEvent.objects.filter(time__gte=threshold)
@@ -62,7 +59,6 @@ class Command(BaseCommand):
                 # Turning these on implies the fan will be turned on too
                 if current_temp < target_temp:
                     # Heating on
-
                     logPrint("Turning on heater and fan! (curtemp %.2f target %.2f)" % (current_temp, target_temp))
 
                     # Fan
@@ -72,7 +68,6 @@ class Command(BaseCommand):
                     controls.controlPin(settings.PIN_HEATCTRL, 1)
                 elif current_temp > target_temp:
                     # Cooling on
-
                     logPrint("Turning on cooling and fan! (curtemp %.2f target %.2f)" % (current_temp, target_temp))
 
                     # First turn on the fan
@@ -159,10 +154,12 @@ class Command(BaseCommand):
                 else:
                     logPrint("Continuing with logic, defrost period is over.")
 
-            # TODO: We need to take a temperature snapshot here if we turn on the controls so later code
-            # isn't confused when the current temp is higher than the latest snapshot (because the controls
-            # were off) (for AC frozen check)
             if temp_delta > settings.TEMP_ON_SWIVEL:
+                t = Temp()
+                t.temp = current_temp
+                t.time = timezone.now()
+                t.save()
+
                 # Okay! Heat or cool?
                 if current_temp < target_temp:
                     # Heating
