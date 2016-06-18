@@ -107,16 +107,16 @@ class Command(BaseCommand):
                 # If it hasn't dropped below a certain threshold, assume the unit is frozen over and defrost
                 # Also make sure there's enough of a delta between now and the last log so we don't compare
                 # across a few seconds!
-                # TODO: Select one that's close but not closer than 15 minutes so this check will run
                 # FIXME: This check needs to be disabled if we just came out of an override and the last temp was taken
                 # before the override.
-                objs = Temp.objects.filter(time__gt=timezone.now()-timedelta(minutes=25))
+                objs = Temp.objects.filter(time__gt=timezone.now()-timedelta(minutes=45))
+                objs.exclude(time__gt=timezone.now()-timedelta(minutes=5))
                 loggedTemp = objs[0]
 
                 delta = timezone.now() - loggedTemp.time
                 logPrint("Checking temperature taken %d minutes ago" % (delta.total_seconds() / 60))
 
-                if (timezone.now() - loggedTemp.time).total_seconds() > 5 * 60:
+                if delta.total_seconds() > 5 * 60:
                     logPrint("Temperature delta %.2f" % (current_temp - loggedTemp.temp))
                     if current_temp - loggedTemp.temp >= -0.01:
                         # Temperature hasn't lowered more than .01 deg celsius since cooling has started. We're not cooling!
