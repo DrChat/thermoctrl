@@ -1,0 +1,206 @@
+﻿{% extends "base.html" %}
+{% load staticfiles %}
+{% block title %}Thermostat Controls{% endblock %}
+
+{% block headtags %}
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+
+    <style type="text/css">
+        {# Throw code surrounded in if blocks here cause the stupid CSS highlighting breaks when mixed with template code #}
+        .ctrl {
+            {% if mobile %}
+                margin: 0 auto;
+                margin-bottom: 5px;
+
+                width: 95%;
+                padding: 10px;
+                /* Make the buttons a bit easier to hit */
+                padding-top: 20px;
+                padding-bottom: 20px;
+                border-radius: 5px;
+            {% else %}
+                display: inline-block;
+                padding: 5px;
+            {% endif %}
+
+            text-decoration: none;
+        }
+    </style>
+    <style type="text/css">
+        .ctrlon {
+            background-color: green;
+            color: white;
+        }
+
+        .ctrloff {
+            background-color: red;
+            color: black;
+        }
+
+        .ctrlfrozen {
+            background-color: lightblue;
+            color: white;
+        }
+
+        .ctrlunk {
+            background-color: gray;
+            color: white;
+        }
+    </style>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/1.0.2/Chart.min.js"></script>
+    <script type="text/javascript" src="{% static "js/jquery-2.1.1.js" %}"></script>
+    <script type="text/javascript">
+        function switchCtrl(elem, status) {
+            elem.removeClass("ctrlfrozen");
+
+            if (status == "on") {
+                elem.removeClass("ctrloff");
+                elem.addClass("ctrlon");
+            } else if (status == "off") {
+                elem.removeClass("ctrlon");
+                elem.addClass("ctrloff");
+            }
+        }
+
+        $().ready(function () {
+            setInterval(function () {
+                // Ping the server and ask for a status update
+                $.ajax("status", {
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.status == "success") {
+                            switchCtrl($("#fan"), data.fan);
+                            switchCtrl($("#cool"), data.cool);
+                            switchCtrl($("#heat"), data.heat);
+                            switchCtrl($("#override"), data.override);
+                        }
+                    },
+                });
+
+                // Also ping for a temperature update
+                $.ajax("status/temp", {
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.status == "success") {
+                            $("#temp").text(data.temp_f + " degrees fahrenheit");
+                        } else {
+                            $("#temp").text("Temperature unavailable :( (" + data.message + ")");
+                        }
+
+                        // Target temp is always reported
+                        var $tgt = $("#target_temp");
+                        if (!$tgt.is(':focus')) { // Don't modify it if the user's cursor is inside the box (if they're editing it)
+                            $tgt.val(data.target_temp_f);
+                        }
+                    },
+                });
+            }, 5000);
+
+            function pingControl() {
+                $.ajax("events/latest", {
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.status == "success") {
+                            var str = "Latest control event: "
+                            switch (data.evt.type) {
+                                case "O":
+                                    // Override
+                                    str += "Override ";
+                                    break;
+                                case "C":
+                                    // Cool
+                                    str += "Cool ";
+                                    break;
+                                case "H":
+                                    // Heat
+                                    str += "Heat ";
+                                    break;
+                                case "F":
+                                    // Fan
+                                    str += "Fan ";
+                                    break;
+                            }
+
+                            str += "Value " + data.evt.val;
+                            str += " Special data \"" + data.evt.spec_data + "\"";
+                            $("#latestctrlevt").text(str);
+
+                            // lol special behavior: If the AC is on cool and frozen, turn the cool button blue.
+                            if (data.evt.type == "C" && data.evt.spec_data == "frozen") {
+                                $("#cool").removeClass("ctrloff ctrlon");
+                                $("#cool").addClass("ctrlfrozen");
+                            }
+                        }
+                    },
+                });
+            }
+
+            // Every minute ping the server for a new control event
+            setInterval(pingControl, 1 * 60 * 1000);
+            pingControl();
+
+            // Set up the buttons so click toggles
+            $("div.ctrl").on("click touch", function () {
+                var id = $(this).attr('id');
+                data = {};
+                data[id] = 'toggle';
+
+                var elem = this;
+
+                $.ajax("switch", {
+                    dataType: "json",
+                    data: data,
+                    success: function (data) {
+                        if (data.status == "failed")
+                            alert(data.message);
+                        else if (data.status == "success") {
+                            // Update all of the controls
+                            if (data.fan)
+                                switchCtrl($("#fan"), data.fan);
+
+                            if (data.cool)
+                                switchCtrl($("#cool"), data.cool);
+
+                            if (data.heat)
+                                switchCtrl($("#heat"), data.heat);
+
+                            if (data.override)
+                                switchCtrl($("#override"), data.override);
+                        }
+                    }
+                });
+            });
+
+            // Target temp change button
+            $("#target_submit").on("click touch", function () {
+                data = {};
+                data['target_temp_f'] = $("#target_temp").val();
+
+                $.ajax("switch/temp", {
+                    dataType: "json",
+                    data: data,
+                    success: function (data) {
+                        if (data.status == "failed")
+                            alert(data.message);
+                        else if (data.status == "success") {
+
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block body %}
+    {% comment %}{% if user.is_authenticated %}<p>Logged in as {{ user.username }}.</p>{% else %}<p>Not logged in! <a href="{% url 'login' %}">Log in</a></p>{% endif %}{% endcomment %}
+    <a href="#"><div id="override" class="ctrl ctrl{% if override %}on{% else %}off{% endif %}">Override</div></a>
+    <a href="#"><div id="fan" class="ctrl ctrl{% if fan %}on{% else %}off{% endif %}">Fan</div></a>
+    <a href="#"><div id="cool" class="ctrl ctrl{% if cool %}on{% else %}off{% endif %}">Cool</div></a>
+    <a href="#"><div id="heat" class="ctrl ctrl{% if heat %}on{% else %}off{% endif %}">Heat</div></a>
+    <p id="temp">{% if temp %}{{ temp_f }} degrees fahrenheit{% else %}Temperature unavailable :({% endif %}</p>
+    <p>Target Temperature: <input type="number" size="5" id="target_temp" /> deg F <input type="submit" id="target_submit" value="Change" /></p>
+
+    <p id="latestctrlevt"></p>
+{% endblock %}

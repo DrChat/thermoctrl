@@ -1,0 +1,15 @@
+﻿{% load staticfiles %}
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>{% block title %}{% endblock %}</title>
+    <script type="text/javascript" src="{% static "js/jquery-2.1.1.js" %}"></script>
+    <link rel="stylesheet" href="{% static "styles/global.css" %}" />
+    {% block headtags %}{% endblock %}
+</head>
+<body>
+    {% block body %}Wow, the developer didn't put any content in this page! What a loser! :({% endblock %}
+</body>
+</html>

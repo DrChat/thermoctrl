@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block title %}asdoij{% endblock %}
+
+{% block headtags %}
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+        google.load("visualization", "1", { packages: ["corechart"] });
+
+        google.setOnLoadCallback(onload);
+        function onload() {
+            // Grab the data with JQuery
+            $.ajax("data/last24h", {
+                dataType: "json",
+                data: {
+                    timezone: "America/Chicago",
+                },
+                success: function (data) {
+                    // :(
+                    if (data.status != "success")
+                        return;
+
+                    table = [];
+                    table.push(['Time', 'Temperature']);
+
+                    for (var i = 0; i < data.numEntries; i++) {
+                        // Wow! Javascript sucks!
+                        // Apparently there is no sprintf or anything of the sort in javascript.
+                        var time = data.entries[i].time_h + ":" + ('0' + data.entries[i].time_m).slice(-2);
+
+                        table.push([time, celsiusToFahrenheit(data.entries[i].temp)]);
+                    }
+
+                    var dataTable = google.visualization.arrayToDataTable(table);
+
+                    var options = {
+                        title: "Temperatures over last 24 hours (in fahrenheit)",
+                    };
+
+                    var chart = new google.visualization.LineChart($("#chart")[0]);
+                    chart.draw(dataTable, options);
+                },
+            });
+        }
+
+        function celsiusToFahrenheit(deg) {
+            return deg * (9 / 5) + 32;
+        }
+    </script>
+{% endblock %}
+{% block body %}
+    <div id="chart"></div>
+{% endblock %}
