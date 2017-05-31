@@ -8,6 +8,11 @@
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+    <style type="text/css">
+    .container {
+        margin-top: 24px;
+    }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -19,10 +24,10 @@
             </div>
             <ul class="list-group">
                 <li class="list-group-item">
-                    <p><a href="{% url 'control.views.index' %}">Control</a></p>
+                    <p><a href="{% url 'control:index' %}">Control</a></p>
                 </li>
                 <li class="list-group-item">
-                    <p><a href="{% url 'templog.views.index' %}">Log</a></p>
+                    <p><a href="{% url 'templog:index' %}">Log</a></p>
                 </li>
             </ul>
         </div>

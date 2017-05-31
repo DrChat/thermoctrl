@@ -25,8 +25,7 @@
 
             text-decoration: none;
         }
-    </style>
-    <style type="text/css">
+        
         .ctrlon {
             background-color: green;
             color: white;
@@ -46,11 +45,24 @@
             background-color: gray;
             color: white;
         }
+
+        #temperature {
+            height: 150px;
+            margin-bottom: 12px;
+        }
+
+        #temperature > svg {
+            height: 100%;
+            display: inline-block;
+        }
     </style>
 
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/1.0.2/Chart.min.js"></script>
     <script type="text/javascript" src="{% static "js/jquery-2.1.1.js" %}"></script>
+    <script type="text/javascript" src="{% static "js/progressbar.js" %}"></script>
     <script type="text/javascript">
+        var temperature = null;
+
         function switchCtrl(elem, status) {
             elem.removeClass("ctrlfrozen");
 
@@ -64,6 +76,18 @@
         }
 
         $().ready(function () {
+            temperature = new ProgressBar.Circle("#temperature", {
+                color: '#FF0000',
+                duration: 3000,
+                easing: 'easeInOut',
+
+                strokeWidth: 8
+            });
+            temperature.animate(1);
+            {% if temp_f %}
+                temperature.animate({{temp_f}} / 100);
+            {% endif %}
+
             setInterval(function () {
                 // Ping the server and ask for a status update
                 $.ajax("status", {
@@ -83,9 +107,11 @@
                     dataType: "json",
                     success: function (data) {
                         if (data.status == "success") {
+                            temperature.animate(data.temp_f / 100);
+                            temperature.setText(data.temp_f);
                             $("#temp").text(data.temp_f + " degrees fahrenheit");
                         } else {
-                            $("#temp").text("Temperature unavailable :( (" + data.message + ")");
+                            $("#temp").text("Temperature unavailable: \"" + data.message + "\"");
                         }
 
                         // Target temp is always reported
@@ -126,7 +152,6 @@
                             str += " Special data \"" + data.evt.spec_data + "\"";
                             $("#latestctrlevt").text(str);
 
-                            // lol special behavior: If the AC is on cool and frozen, turn the cool button blue.
                             if (data.evt.type == "C" && data.evt.spec_data == "frozen") {
                                 $("#cool").removeClass("ctrloff ctrlon");
                                 $("#cool").addClass("ctrlfrozen");
@@ -181,9 +206,9 @@
                     dataType: "json",
                     data: data,
                     success: function (data) {
-                        if (data.status == "failed")
+                        if (data.status == "failed") {
                             alert(data.message);
-                        else if (data.status == "success") {
+                        } else if (data.status == "success") {
 
                         }
                     }
@@ -194,13 +219,26 @@
 {% endblock %}
 
 {% block body %}
-    {% comment %}{% if user.is_authenticated %}<p>Logged in as {{ user.username }}.</p>{% else %}<p>Not logged in! <a href="{% url 'login' %}">Log in</a></p>{% endif %}{% endcomment %}
-    <a href="#"><div id="override" class="ctrl ctrl{% if override %}on{% else %}off{% endif %}">Override</div></a>
-    <a href="#"><div id="fan" class="ctrl ctrl{% if fan %}on{% else %}off{% endif %}">Fan</div></a>
-    <a href="#"><div id="cool" class="ctrl ctrl{% if cool %}on{% else %}off{% endif %}">Cool</div></a>
-    <a href="#"><div id="heat" class="ctrl ctrl{% if heat %}on{% else %}off{% endif %}">Heat</div></a>
-    <p id="temp">{% if temp %}{{ temp_f }} degrees fahrenheit{% else %}Temperature unavailable :({% endif %}</p>
-    <p>Target Temperature: <input type="number" size="5" id="target_temp" /> deg F <input type="submit" id="target_submit" value="Change" /></p>
+    <div class="container">
+        {% comment %}{% if user.is_authenticated %}<p>Logged in as {{ user.username }}.</p>{% else %}<p>Not logged in! <a href="{% url 'login' %}">Log in</a></p>{% endif %}{% endcomment %}
+        
+        <div class="row">
+            <div id="temperature"></div>
+        </div>
+        <div class="row">
+            <div class="col-md-offset-5">
+                <a href="#"><div id="override" class="ctrl ctrl{% if override %}on{% else %}off{% endif %}">Override</div></a>
+                <a href="#"><div id="fan" class="ctrl ctrl{% if fan %}on{% else %}off{% endif %}">Fan</div></a>
+                <a href="#"><div id="cool" class="ctrl ctrl{% if cool %}on{% else %}off{% endif %}">Cool</div></a>
+                <a href="#"><div id="heat" class="ctrl ctrl{% if heat %}on{% else %}off{% endif %}">Heat</div></a>
+            </div>
+        </div>
+        
+        <div class="row">
+            <p id="temp">{% if temp %}{{ temp_f }} degrees fahrenheit{% else %}Temperature unavailable{% endif %}</p>
+            <p>Target Temperature: <input type="number" size="5" id="target_temp" /> deg F <input type="submit" id="target_submit" value="Change" /></p>
 
-    <p id="latestctrlevt"></p>
+            <p id="latestctrlevt"></p>
+        </div>
+    </div>
 {% endblock %}

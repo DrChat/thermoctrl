@@ -6,8 +6,13 @@ import sys
 
 from control import settings
 from models import ControlEvent
-import pigpio
-pi = pigpio.pi()
+
+pi = None
+try:
+    import pigpio
+    pi = pigpio.pi()
+except ImportError:
+    pass
 
 def controlPin(pin, state, spec_data=None):
     """
@@ -47,11 +52,11 @@ def controlOverride(enabled):
 # N.B: We're flipping the state because of our hardware setup. Pins set to low
 # turn on our relay, while setting pins to high turns it off.
 def setPin(pin, state):
-    if PRODUCTION_SERVER:
+    if PRODUCTION_SERVER and pi:
         return pi.write(pin, state == 0)
 
 def readPin(pin):
-    if PRODUCTION_SERVER:
+    if PRODUCTION_SERVER and pi:
         return pi.read(pin) == 0
     else:
         return 0

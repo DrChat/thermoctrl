@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load staticfiles %}
-{% block title %}asdoij{% endblock %}
+{% block title %}Temperatures{% endblock %}
 
 {% block headtags %}
     <script type="text/javascript" src="https://www.google.com/jsapi"></script>
@@ -10,7 +10,7 @@
         google.setOnLoadCallback(onload);
         function onload() {
             // Grab the data with JQuery
-            $.ajax("data/last24h", {
+            $.ajax("data/last/24h", {
                 dataType: "json",
                 data: {
                     timezone: "America/Chicago",
